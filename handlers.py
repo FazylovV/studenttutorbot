@@ -5,11 +5,13 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, message_id, CallbackQuery, InlineKeyboardButton, \
     InputFile, FSInputFile, InlineKeyboardMarkup, InputMediaPhoto
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-#from database.db import DataBase
+from pyexpat.errors import messages
+
+from database.db import DataBase
 import text
 
 
-#db = DataBase()
+db = DataBase()
 router = Router()
 
 class Form(StatesGroup):
@@ -37,6 +39,12 @@ async def start_handler(message: Message):
 
 @router.callback_query(F.data == 'student')
 async def student_handler(call: CallbackQuery):
+    tg_id = call.from_user.id
+    first_name = call.from_user.first_name
+    last_name = call.from_user.last_name
+    fullname = first_name + (f" {last_name}" if last_name else "")  # Объединяем имя и фамилию
+    contact = '@' + call.from_user.username
+    db.add_student(tg_id, fullname, contact)
     kb = [[KeyboardButton(text='Поиск репетитора')],
           [KeyboardButton(text='Главная')],
           [KeyboardButton(text='Тех. поддержка')]]
@@ -137,7 +145,7 @@ async def finalize_publication(message: Message, state: FSMContext):
     tutor_id = data.get('tutor_id')
 
     # Здесь вы можете добавить код для сохранения данных в БД
-    #db.add_publication(tutor_id, full_name, institution, specialty, subject, contact)
+    db.add_publication(tutor_id, full_name, institution, specialty, subject, contact)
 
     await message.answer(
         "Ваша публикация успешно размещена:\n" +
@@ -145,8 +153,10 @@ async def finalize_publication(message: Message, state: FSMContext):
         f"Учреждение: {institution}\n" +
         f"Специальность(направление): {specialty}\n" +
         f"Предмет: {subject}\n" +
-        f"Контактные данные: {contact}"
+        f"Контактные данные: @{contact}"
     )
+
+    await state.clear()
 
 
 
