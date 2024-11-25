@@ -52,9 +52,9 @@ class DataBase:
                 print("[INFO] PostgreSQL connection closed")
 
 
-    # # Добавление нового пользователя
-    # def add_user(self, id):
-    #     role = 'user'
-    #     self.exec_query(f"""insert into {schema_name}.users (id, role)
-    #                                       values ('{id}', '{role}')""",
-    #                     "[INFO] User was added", True)
+     # Добавление нового пользователя
+    #def add_publication(self, tutor_id, fullname, institution, specialty, subject, contact):
+    #    contact = '@'+contact
+    #    self.exec_query(f"""insert into {schema_name}.publications (tutor_id, fullname, institution, specialty, subject, contact)
+    #                                   values ('{tutor_id}', '{fullname}', '{institution}', '{specialty}', '{subject}', '{contact}')""",
+    #                 "[INFO] Tutor was added", False)

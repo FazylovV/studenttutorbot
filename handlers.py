@@ -5,12 +5,20 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, message_id, CallbackQuery, InlineKeyboardButton, \
     InputFile, FSInputFile, InlineKeyboardMarkup, InputMediaPhoto
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+#from database.db import DataBase
 import text
 
+
+#db = DataBase()
 router = Router()
 
 class Form(StatesGroup):
-    publication = State()
+    institution = State()
+    specialty = State()
+    subject = State()
+    full_name = State()
+    contact = State()
+    contact_manual = State()
 
 @router.message(Command("start"))
 async def start_handler(message: Message):
@@ -37,6 +45,8 @@ async def student_handler(call: CallbackQuery):
         'Отлично с выбором определились',
         reply_markup=user_keyboard
     )
+    await call.answer()
+
 
 @router.callback_query(F.data == 'tutor')
 async def tutor_handler(call: CallbackQuery):
@@ -48,7 +58,95 @@ async def tutor_handler(call: CallbackQuery):
         'Отлично, с выбором определились',
         reply_markup=user_keyboard
     )
+    await call.answer()
+
+# Возвращаем пользователя к выбору "Студент" или "Репетитор"
+@router.message(F.text == 'Главная')
+async def main_handler(message: Message):
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(
+        text="Студент",
+        callback_data=f"student"))
+    builder.row(InlineKeyboardButton(
+        text="Репетитор",
+        callback_data="tutor"))
+    await message.answer(
+        text.hello_text,
+        reply_markup=builder.as_markup()
+    )
 
 @router.message(F.text == 'Опубликовать анкету')
 async def publication_handler(message: Message, state: FSMContext):
-    print('Form started')
+    await message.answer("Введите учреждение:")
+    await state.set_state(Form.institution)
+
+@router.message(Form.institution)
+async def process_institution(message: Message, state: FSMContext):
+    await state.update_data(institution=message.text)
+    await message.answer("Введите специальность:")
+    await state.set_state(Form.specialty)
+
+@router.message(Form.specialty)
+async def process_specialty(message: Message, state: FSMContext):
+    await state.update_data(specialty=message.text)
+    await message.answer("Введите предмет:")
+    await state.set_state(Form.subject)
+
+@router.message(Form.subject)
+async def process_subject(message: Message, state: FSMContext):
+    await state.update_data(subject=message.text)
+    await message.answer("ФИО (или просто Кто вы?):")
+    await state.set_state(Form.full_name)
+
+@router.message(Form.full_name)
+async def process_full_name(message: Message, state: FSMContext):
+    await state.update_data(full_name=message.text)
+    await message.answer("Получаю ваш юзернейм...")
+    await process_contact(message, state)
+
+#либо получаем юзернейм, либо просим ввести
+@router.message(Form.contact)
+async def process_contact(message: Message, state: FSMContext):
+    username = message.from_user.username
+    tutor_id = message.from_user.id
+    if username:
+        await state.update_data(contact=username)
+        await state.update_data(tutor_id=tutor_id)
+        await message.answer("Ваш юзернейм успешно получен!")
+    else:
+        await message.answer("У вас нет установленного юзернейма. Пожалуйста, введите его вручную:")
+        await state.set_state(Form.contact_manual) # просим ввести руками
+        return
+
+    await finalize_publication(message, state)
+
+@router.message(Form.contact_manual)
+async def process_contact_manual(message: Message, state: FSMContext):
+    await state.update_data(contact=message.text)
+    await message.answer("Ваш юзернейм успешно получен!")
+    await finalize_publication(message, state)
+
+async def finalize_publication(message: Message, state: FSMContext):
+    # Получаем все данные
+    data = await state.get_data()
+    institution = data.get('institution')
+    specialty = data.get('specialty')
+    subject = data.get('subject')
+    full_name = data.get('full_name')
+    contact = data.get('contact')
+    tutor_id = data.get('tutor_id')
+
+    # Здесь вы можете добавить код для сохранения данных в БД
+    #db.add_publication(tutor_id, full_name, institution, specialty, subject, contact)
+
+    await message.answer(
+        "Ваша публикация успешно размещена:\n" +
+        f"{full_name} разместил(а) объявление о репетиторстве.\n" +
+        f"Учреждение: {institution}\n" +
+        f"Специальность(направление): {specialty}\n" +
+        f"Предмет: {subject}\n" +
+        f"Контактные данные: {contact}"
+    )
+
+
+
