@@ -75,6 +75,24 @@ class DataBase:
             WHERE tutor_id = {tutor_id} AND subject = '{subject}' -- или другой критерий, который уникально идентифицирует запись
         """)
 
+    # Функция для подсчета количества публикаций
+    def get_publications_count(self):
+        query = f"SELECT COUNT(*) FROM {schema_name}.publications"
+        result = self.exec_query(query)
+        return result[0][0]  # Возвращаем количество публикаций
+
+    # Функция для получения публикаций для конкретной страницы
+    def get_publications_for_page(self, page_number: int, per_page: int = 10):
+        offset = (page_number - 1) * per_page  # Рассчитываем смещение для пагинации
+        query = f"""
+        SELECT * FROM {schema_name}.publications
+        ORDER BY id ASC  -- Сортировка по id в порядке возрастания
+        LIMIT {per_page} OFFSET {offset}  -- Ограничиваем количество публикаций для страницы
+        """
+        result = self.exec_query(query)
+        return result
+
+
 #db = DataBase()
 
 #db.update_publication('5740628600','Олегов Олег Олегович', 'ЧелГУ', 'Программная инженерия', 'Информатика', 'Mihter_2208')

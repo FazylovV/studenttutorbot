@@ -45,7 +45,7 @@ async def student_handler(call: CallbackQuery):
     fullname = first_name + (f" {last_name}" if last_name else "")  # Объединяем имя и фамилию
     contact = '@' + call.from_user.username
     db.add_student(tg_id, fullname, contact)
-    kb = [[KeyboardButton(text='Поиск репетитора')],
+    kb = [[KeyboardButton(text='Поиск репетитора', callback_data="search_tutors")],
           [KeyboardButton(text='Главная')],
           [KeyboardButton(text='Тех. поддержка')]]
     user_keyboard = ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
@@ -53,6 +53,138 @@ async def student_handler(call: CallbackQuery):
         'Отлично с выбором определились',
         reply_markup=user_keyboard
     )
+    await call.answer()
+
+#поиск репетиторов
+@router.message(F.text == 'Поиск репетитора')
+@router.callback_query(F.data == 'search_tutors')
+async def search_tutors_handler(call: CallbackQuery, state: FSMContext):
+    # Получаем общее количество публикаций
+    total_publications = db.get_publications_count()
+
+    # Если публикаций нет
+    if total_publications == 0:
+        await call.message.answer("На данный момент нет доступных репетиторов.")
+        await call.answer()
+        return
+
+    # Показываем общее количество публикаций и предлагаем перейти на страницу
+    page_count = (total_publications // 10) + (1 if total_publications % 10 else 0)
+
+    # Сохраняем количество страниц в состоянии
+    await state.update_data(total_pages=page_count, current_page=1)
+
+    # Выводим первую страницу публикаций
+    publications = db.get_publications_for_page(1)
+
+    publications_text = "\n\n".join([f"Публикация {i+1}: {pub}" for i, pub in enumerate(publications)])
+
+    builder = InlineKeyboardBuilder()
+    builder.row(
+        InlineKeyboardButton(text="<<", callback_data="prev_page"),
+        InlineKeyboardButton(text=f"1/{page_count}", callback_data="current_page"),
+        InlineKeyboardButton(text=">>", callback_data="next_page")
+    )
+    #добавление кнопки с tutor_id в callback_data
+    for pub in publications:
+        builder.row(
+            InlineKeyboardButton(text="Подать заявку", callback_data=f"apply_for_tutor_{pub[1]}")
+        )
+
+    await call.answer(
+        f"Всего публикаций: {total_publications}\n\n{publications_text}",
+        reply_markup=builder.as_markup()
+    )
+    #await call.answer()
+
+@router.callback_query(F.data.startswith("apply_for_tutor"))
+async def apply_for_tutor(call: CallbackQuery, state: FSMContext):
+    student_id = call.from_user.id
+
+    # Извлекаем tutor_id из callback_data
+    tutor_id = call.data.split("_")[-1]  # Разделяем по символу "_" и получаем tutor_id
+
+    # Сохраняем заявку на репетитора
+    #db.add_request(student_id, tutor_id)
+    print(f"Заявка подаётся  репетитор {tutor_id} студент {student_id}")
+
+    await call.answer("Ваша заявка на репетитора подана!")
+    #await call.answer()
+
+
+@router.callback_query(F.data == "next_page")
+async def next_page(call: CallbackQuery, state: FSMContext):
+    # Получаем текущую страницу из состояния
+    data = await state.get_data()
+    current_page = data.get("current_page", 1)
+    total_pages = data.get("total_pages", 1)
+
+    if current_page < total_pages:
+        current_page += 1
+
+        # Сохраняем новую страницу в состояние
+        await state.update_data(current_page=current_page)
+
+        # Получаем публикации для текущей страницы
+        publications = db.get_publications_for_page(current_page)
+
+        publications_text = "\n\n".join([f"Публикация {i+1}: {pub}" for i, pub in enumerate(publications)])
+
+        builder = InlineKeyboardBuilder()
+        builder.row(
+            InlineKeyboardButton(text="<<", callback_data="prev_page"),
+            InlineKeyboardButton(text=f"{current_page}/{total_pages}", callback_data="current_page"),
+            InlineKeyboardButton(text=">>", callback_data="next_page")
+        )
+
+        # Добавляем кнопку для каждой публикации
+        for pub in publications:
+            builder.row(
+                InlineKeyboardButton(text=f"Подать заявку на {pub[1]}", callback_data=f"apply_for_tutor_{pub[1]}")
+            )
+
+        await call.message.edit_text(
+            f"Страница {current_page} из {total_pages}\n\n{publications_text}",
+            reply_markup=builder.as_markup()
+        )
+
+    await call.answer()
+
+@router.callback_query(F.data == "prev_page")
+async def prev_page(call: CallbackQuery, state: FSMContext):
+    # Получаем текущую страницу из состояния
+    data = await state.get_data()
+    current_page = data.get("current_page", 1)
+
+    if current_page > 1:
+        current_page -= 1
+
+        # Сохраняем новую страницу в состояние
+        await state.update_data(current_page=current_page)
+
+        # Получаем публикации для текущей страницы
+        publications = db.get_publications_for_page(current_page)
+
+        publications_text = "\n\n".join([f"Публикация {i+1}: {pub}" for i, pub in enumerate(publications)])
+
+        builder = InlineKeyboardBuilder()
+        builder.row(
+            InlineKeyboardButton(text="<<", callback_data="prev_page"),
+            InlineKeyboardButton(text=f"{current_page}/{data['total_pages']}", callback_data="current_page"),
+            InlineKeyboardButton(text=">>", callback_data="next_page")
+        )
+
+        # Добавляем кнопку для каждой публикации
+        for pub in publications:
+            builder.row(
+                InlineKeyboardButton(text=f"Подать заявку на {pub[1]}", callback_data=f"apply_for_tutor_{pub[1]}")
+            )
+
+        await call.message.edit_text(
+            f"Страница {current_page} из {data['total_pages']}\n\n{publications_text}",
+            reply_markup=builder.as_markup()
+        )
+
     await call.answer()
 
 
