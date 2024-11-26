@@ -86,10 +86,12 @@ async def search_tutors_handler(call: CallbackQuery, state: FSMContext):
         InlineKeyboardButton(text=">>", callback_data="next_page")
     )
     #добавление кнопки с tutor_id в callback_data
+    i = 1
     for pub in publications:
         builder.row(
-            InlineKeyboardButton(text="Подать заявку", callback_data=f"apply_for_tutor_{pub[1]}")
+            InlineKeyboardButton(text=f"Подать заявку на {i} публикацю", callback_data=f"apply_for_tutor_{pub[1]}")
         )
+        i += 1
 
     await call.answer(
         f"Всего публикаций: {total_publications}\n\n{publications_text}",
@@ -138,10 +140,12 @@ async def next_page(call: CallbackQuery, state: FSMContext):
         )
 
         # Добавляем кнопку для каждой публикации
+        i = 1
         for pub in publications:
             builder.row(
-                InlineKeyboardButton(text=f"Подать заявку на {pub[1]}", callback_data=f"apply_for_tutor_{pub[1]}")
+                InlineKeyboardButton(text=f"Подать заявку на {i} публикацию", callback_data=f"apply_for_tutor_{pub[1]}")
             )
+            i += 1
 
         await call.message.edit_text(
             f"Страница {current_page} из {total_pages}\n\n{publications_text}",
@@ -175,10 +179,12 @@ async def prev_page(call: CallbackQuery, state: FSMContext):
         )
 
         # Добавляем кнопку для каждой публикации
+        i = 1
         for pub in publications:
             builder.row(
-                InlineKeyboardButton(text=f"Подать заявку на {pub[1]}", callback_data=f"apply_for_tutor_{pub[1]}")
+                InlineKeyboardButton(text=f"Подать заявку на {i} публикацию", callback_data=f"apply_for_tutor_{pub[1]}")
             )
+            i += 1
 
         await call.message.edit_text(
             f"Страница {current_page} из {data['total_pages']}\n\n{publications_text}",
