@@ -77,7 +77,7 @@ async def search_tutors_handler(call: CallbackQuery, state: FSMContext):
     # Выводим первую страницу публикаций
     publications = db.get_publications_for_page(1)
 
-    publications_text = "\n\n".join([f"<i>Публикация {i+1}</i>: {pub[2]}, {pub[3]}, <b>{pub[4]}</b>" for i, pub in enumerate(publications)])
+    publications_text = "\n\n".join([f"<i>Публикация {i+1}</i>: {pub[2]}, {pub[3]}, {pub[4]}, <b>{pub[5]}</b>, {pub[6]}" for i, pub in enumerate(publications)])
 
     builder = InlineKeyboardBuilder()
     builder.row(
@@ -128,7 +128,7 @@ async def next_page(call: CallbackQuery, state: FSMContext):
         # Получаем публикации для текущей страницы
         publications = db.get_publications_for_page(current_page)
 
-        publications_text = "\n\n".join([f"<i>Публикация {i+1}</i>: {pub[2]}, {pub[3]}, <b>{pub[4]}</b>" for i, pub in enumerate(publications)])
+        publications_text = "\n\n".join([f"<i>Публикация {i+1}</i>: {pub[2]}, {pub[3]}, {pub[4]}, <b>{pub[5]}</b>, {pub[6]}" for i, pub in enumerate(publications)])
 
         builder = InlineKeyboardBuilder()
         builder.row(
@@ -165,7 +165,7 @@ async def prev_page(call: CallbackQuery, state: FSMContext):
         # Получаем публикации для текущей страницы
         publications = db.get_publications_for_page(current_page)
 
-        publications_text = "\n\n".join([f"<i>Публикация {i+1}</i>: {pub[2]}, {pub[3]}, <b>{pub[4]}</b>" for i, pub in enumerate(publications)])
+        publications_text = "\n\n".join([f"<i>Публикация {i+1}</i>: {pub[2]}, {pub[3]}, {pub[4]}, <b>{pub[5]}</b>, {pub[6]}" for i, pub in enumerate(publications)])
 
         builder = InlineKeyboardBuilder()
         builder.row(
