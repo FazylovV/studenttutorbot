@@ -9,6 +9,7 @@ from pyexpat.errors import messages
 
 from database.db import DataBase
 import text
+import html
 
 
 db = DataBase()
@@ -21,6 +22,7 @@ class Form(StatesGroup):
     full_name = State()
     contact = State()
     contact_manual = State()
+    request = State()
 
 @router.message(Command("start"))
 async def start_handler(message: Message):
@@ -89,7 +91,7 @@ async def search_tutors_handler(call: CallbackQuery, state: FSMContext):
     i = 1
     for pub in publications:
         builder.row(
-            InlineKeyboardButton(text=f"Подать заявку на {i} публикацю", callback_data=f"apply_for_tutor_{pub[1]}")
+            InlineKeyboardButton(text=f"Подать заявку на {i} публикацию", callback_data=f"apply_for_tutor_{pub[1]}")
         )
         i += 1
 
@@ -105,13 +107,25 @@ async def apply_for_tutor(call: CallbackQuery, state: FSMContext):
 
     # Извлекаем tutor_id из callback_data
     tutor_id = call.data.split("_")[-1]  # Разделяем по символу "_" и получаем tutor_id
+    await state.update_data(tutor_id=tutor_id)
 
     # Сохраняем заявку на репетитора
-    #db.add_request(student_id, tutor_id)
-    print(f"Заявка подаётся  репетитор {tutor_id} студент {student_id}")
+    # db.add_request(student_id, tutor_id)
+    # print(f"Заявка подаётся  репетитор {tutor_id} студент {student_id}")
 
-    await call.answer("Ваша заявка на репетитора подана!")
-    #await call.answer()
+
+    # await call.answer("Ваша заявка на репетитора подана!")
+    # await call.answer()
+    await call.message.answer(text.request_example)
+    await state.set_state(Form.request)
+
+@router.message(Form.request)
+async def send_request(message: Message, state: FSMContext):
+    request_text = message.text
+    data = await state.get_data()
+    tutor_id = data["tutor_id"]
+    db.add_request(message.from_user.id, tutor_id, request_text)
+    await message.answer('Заявка успешно отправлена!')
 
 
 @router.callback_query(F.data == "next_page")
