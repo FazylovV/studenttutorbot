@@ -36,7 +36,7 @@ CREATE TABLE "requests" (
     "id" SERIAL NOT NULL,           -- Автоинкрементный id для запроса
     "student_id" BIGINT NOT NULL,   -- Ссылка на студента
     "tutor_id" BIGINT NOT NULL,     -- Ссылка на преподавателя
-    "publication_id" BIGINT, -- Ссылка на публикацию
+    "publication_id" BIGINT NOT NULL, -- Ссылка на публикацию
     "description" TEXT NOT NULL,
     "isAccepted" BOOLEAN NOT NULL DEFAULT '0', -- Статус запроса
     PRIMARY KEY ("id"),             -- id как PRIMARY KEY

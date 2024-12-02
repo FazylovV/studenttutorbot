@@ -62,9 +62,9 @@ class DataBase:
         self.exec_update_query(f"""insert into {schema_name}.tutors (tg_id, fullname, is_recruiting)
                                           values ('{tg_id}', '{fullname}', '{True}')""")
 
-    def add_request(self, student_id, tutor_id, description):
-        self.exec_update_query(f"""insert into {schema_name}.requests (student_id, tutor_id, description)
-                                          values ('{student_id}', '{tutor_id}', '{description}')""")
+    def add_request(self, student_id, tutor_id, publication_id, description):
+        self.exec_update_query(f"""insert into {schema_name}.requests (student_id, tutor_id, publication_id, description)
+                                          values ('{student_id}', '{tutor_id}', '{publication_id}', '{description}')""")
 
 
     def update_publication(self, tutor_id, fullname, institution, specialty, subject, contact):

@@ -91,7 +91,7 @@ async def search_tutors_handler(call: CallbackQuery, state: FSMContext):
     i = 1
     for pub in publications:
         builder.row(
-            InlineKeyboardButton(text=f"Подать заявку на {i} публикацию", callback_data=f"apply_for_tutor_{pub[1]}")
+            InlineKeyboardButton(text=f"Подать заявку на {i} публикацию", callback_data=f"apply_for_tutor_{pub[0]}_{pub[1]}")
         )
         i += 1
 
@@ -106,16 +106,11 @@ async def apply_for_tutor(call: CallbackQuery, state: FSMContext):
     student_id = call.from_user.id
 
     # Извлекаем tutor_id из callback_data
-    tutor_id = call.data.split("_")[-1]  # Разделяем по символу "_" и получаем tutor_id
-    await state.update_data(tutor_id=tutor_id)
+    list_tut_pub = call.data.split('_') # Разделяем по символу "_" и получаем tutor_id
+    tutor_id = list_tut_pub[-1]
+    publication_id = list_tut_pub[-2]
+    await state.update_data(tutor_id=tutor_id, publication_id=publication_id)
 
-    # Сохраняем заявку на репетитора
-    # db.add_request(student_id, tutor_id)
-    # print(f"Заявка подаётся  репетитор {tutor_id} студент {student_id}")
-
-
-    # await call.answer("Ваша заявка на репетитора подана!")
-    # await call.answer()
     await call.message.answer(text.request_example)
     await state.set_state(Form.request)
 
@@ -124,7 +119,8 @@ async def send_request(message: Message, state: FSMContext):
     request_text = message.text
     data = await state.get_data()
     tutor_id = data["tutor_id"]
-    db.add_request(message.from_user.id, tutor_id, request_text)
+    publication_id = data["publication_id"]
+    db.add_request(message.from_user.id, tutor_id, publication_id, request_text)
     await message.answer('Заявка успешно отправлена!')
 
 
