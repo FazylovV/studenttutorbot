@@ -1,4 +1,4 @@
-from aiogram import Router, F
+from aiogram import Router, F, Bot
 from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
@@ -103,7 +103,6 @@ async def search_tutors_handler(call: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data.startswith("apply_for_tutor"))
 async def apply_for_tutor(call: CallbackQuery, state: FSMContext):
-    student_id = call.from_user.id
 
     # Извлекаем tutor_id из callback_data
     list_tut_pub = call.data.split('_') # Разделяем по символу "_" и получаем tutor_id
@@ -115,12 +114,27 @@ async def apply_for_tutor(call: CallbackQuery, state: FSMContext):
     await state.set_state(Form.request)
 
 @router.message(Form.request)
-async def send_request(message: Message, state: FSMContext):
+async def send_request(message: Message, state: FSMContext, bot: Bot):
     request_text = message.text
     data = await state.get_data()
     tutor_id = data["tutor_id"]
     publication_id = data["publication_id"]
     db.add_request(message.from_user.id, tutor_id, publication_id, request_text)
+
+    builder = InlineKeyboardBuilder()
+    builder.row(
+        InlineKeyboardButton(text="Принять", callback_data=f"accept_request_{message.from_user.id}_{publication_id}"),
+        InlineKeyboardButton(text="Отклонить", callback_data=f"reject_request_{message.from_user.id}_{publication_id}")
+    )
+
+    await bot.send_message(
+        chat_id=tutor_id,
+        text=f"На вашу заявку откликнулись:\n"
+             f"Текст заявки: {request_text}\n\n"
+             f"Принять или отклонить заявку?",
+        reply_markup=builder.as_markup()
+    )
+
     await message.answer('Заявка успешно отправлена!')
 
 
@@ -153,7 +167,7 @@ async def next_page(call: CallbackQuery, state: FSMContext):
         i = 1
         for pub in publications:
             builder.row(
-                InlineKeyboardButton(text=f"Подать заявку на {i} публикацию", callback_data=f"apply_for_tutor_{pub[1]}")
+                InlineKeyboardButton(text=f"Подать заявку на {i} публикацию", callback_data=f"apply_for_tutor_{pub[0]}_{pub[1]}")
             )
             i += 1
 
@@ -192,7 +206,7 @@ async def prev_page(call: CallbackQuery, state: FSMContext):
         i = 1
         for pub in publications:
             builder.row(
-                InlineKeyboardButton(text=f"Подать заявку на {i} публикацию", callback_data=f"apply_for_tutor_{pub[1]}")
+                InlineKeyboardButton(text=f"Подать заявку на {i} публикацию", callback_data=f"apply_for_tutor_{pub[0]}_{pub[1]}")
             )
             i += 1
 
@@ -214,7 +228,7 @@ async def tutor_handler(call: CallbackQuery):
         'Отлично, с выбором определились',
         reply_markup=user_keyboard
     )
-    await call.answer()
+    #await call.answer()
 
 # Возвращаем пользователя к выбору "Студент" или "Репетитор"
 @router.message(F.text == 'Главная')
