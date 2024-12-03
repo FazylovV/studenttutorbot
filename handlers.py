@@ -23,6 +23,9 @@ class Form(StatesGroup):
     contact = State()
     contact_manual = State()
     request = State()
+    reject_request = State()
+    accept_request = State()
+    accept_request_student = State()
 
 @router.message(Command("start"))
 async def start_handler(message: Message):
@@ -102,7 +105,7 @@ async def search_tutors_handler(call: CallbackQuery, state: FSMContext):
     #await call.answer()
 
 @router.callback_query(F.data.startswith("apply_for_tutor"))
-async def apply_for_tutor(call: CallbackQuery, state: FSMContext):
+async def apply_for_tutor(call: CallbackQuery,  state: FSMContext):
 
     # Извлекаем tutor_id из callback_data
     list_tut_pub = call.data.split('_') # Разделяем по символу "_" и получаем tutor_id
@@ -117,14 +120,17 @@ async def apply_for_tutor(call: CallbackQuery, state: FSMContext):
 async def send_request(message: Message, state: FSMContext, bot: Bot):
     request_text = message.text
     data = await state.get_data()
+    student_id = message.from_user.id
     tutor_id = data["tutor_id"]
     publication_id = data["publication_id"]
-    db.add_request(message.from_user.id, tutor_id, publication_id, request_text)
+    await state.update_data(student_id=student_id)
+
+    db.add_request(student_id, tutor_id, publication_id, request_text)
 
     builder = InlineKeyboardBuilder()
     builder.row(
-        InlineKeyboardButton(text="Принять", callback_data=f"accept_request_{message.from_user.id}_{publication_id}"),
-        InlineKeyboardButton(text="Отклонить", callback_data=f"reject_request_{message.from_user.id}_{publication_id}")
+        InlineKeyboardButton(text="Принять", callback_data=f"accept_request_{student_id}_{publication_id}"),
+        InlineKeyboardButton(text="Отклонить", callback_data=f"reject_request_{student_id}_{publication_id}")
     )
 
     await bot.send_message(
@@ -135,7 +141,95 @@ async def send_request(message: Message, state: FSMContext, bot: Bot):
         reply_markup=builder.as_markup()
     )
 
-    await message.answer('Заявка успешно отправлена!')
+    await message.answer('Заявка успешно отправлена!\nКогда преподаватель ответит, вам придет сообщение, пока можете оставить другие заявки. ')
+
+
+@router.callback_query(F.data.startswith("accept_request"))
+async def accept_request(call: CallbackQuery, state: FSMContext):
+    list_accept_request = call.data.split('_')
+    student_id = list_accept_request[-2]
+    publication_id = list_accept_request[-1]
+    await state.update_data(student_id=student_id, publication_id=publication_id)
+
+    await call.message.answer("Пожалуйста, введите обратную связь по запросу студента:")
+    await state.set_state(Form.accept_request)
+
+
+@router.message(Form.accept_request)
+async def process_feedback(message: Message, state: FSMContext):
+    feedback = message.text
+    await state.update_data(feedback=feedback)
+
+    await message.answer("Теперь введите стоимость ваших услуг (например, '1000 рублей'):")
+    await state.set_state(Form.accept_request_student)  # Переходим в тот же статус, чтобы получать следующую информацию
+
+
+@router.message(Form.accept_request_student)
+async def process_price(message: Message, state: FSMContext, bot: Bot):
+    price = message.text
+    data = await state.get_data()
+    student_id = data["student_id"]
+    feedback = data["feedback"]
+    tutor_username = message.from_user.username
+    await state.update_data(tutor_username=tutor_username)
+
+    pay_keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            #можно вставить url=ссылка на оплату
+            [InlineKeyboardButton(text="Оплатить", callback_data=f"handle_payment_{tutor_username}_{student_id}")]
+        ]
+    )
+    # Отправляем студенту обратную связь и цену
+    await bot.send_message(
+        chat_id=student_id,
+        text=f"Репетитор дал(а) вам обратную связь:\n\n{feedback}\n\nСтоимость услуг: {price}\n\nДля продолжения нажмите кнопку ниже.",
+        reply_markup=pay_keyboard
+    )
+
+    await message.answer("Обратная связь и стоимость успешно отправлены студенту.")
+    #await state.clear()  # Очистка состояния после завершения процесса
+
+
+#@router.message(Form.accept_request_student)
+@router.callback_query(F.data.startswith("handle_payment"))
+async def handle_payment(call: CallbackQuery, state: FSMContext, bot: Bot):
+    student_id = F.data.split('_')[-1]# Юзернейм репетитора из состояния
+    tutor_username = F.data.split('_')[-2]
+
+    # Отправляем сообщение студенту, что оплата пока не поступила
+    await bot.send_message(
+        chat_id=student_id,
+        text="Оплаты пока нет. Вот чат с репетитором: @"+tutor_username
+    )
+    await call.answer()
+    await state.clear()  # Очистка состояния после завершения процесса
+
+
+@router.callback_query(F.data.startswith("reject_request"))
+async def reject_request(call: CallbackQuery, state: FSMContext):
+    list_reject_request = call.data.split('_')
+    student_id = list_reject_request[-2]
+    publication_id = list_reject_request[-1]
+    await state.update_data(student_id=student_id, publication_id=publication_id)
+
+    await call.message.answer("Пожалуйста, введите причину отказа:")
+    await state.set_state(Form.reject_request)
+
+
+@router.message(Form.reject_request)
+async def process_reject_reason(message: Message, state: FSMContext, bot: Bot):
+    reject_reason = message.text
+    data = await state.get_data()
+    student_id = data["student_id"]
+
+    # Отправка сообщения студенту
+    await bot.send_message(
+        chat_id=student_id,
+        text=f"Ваша заявка была отклонена.\nПричина: {reject_reason}"
+    )
+
+    await message.answer("Причина отказа успешно отправлена студенту.")
+    await state.clear()
 
 
 @router.callback_query(F.data == "next_page")
