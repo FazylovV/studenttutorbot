@@ -176,7 +176,7 @@ async def process_price(message: Message, state: FSMContext, bot: Bot):
     pay_keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             #можно вставить url=ссылка на оплату
-            [InlineKeyboardButton(text="Оплатить", callback_data=f"handle_payment_{tutor_username}_{student_id}")]
+            [InlineKeyboardButton(text="Оплатить", url=f"https://t.me/{tutor_username}", callback_data=f"handle_payment_{tutor_username}_{student_id}")]
         ]
     )
     # Отправляем студенту обратную связь и цену
