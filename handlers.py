@@ -11,7 +11,7 @@ from database.db import DataBase
 import text
 import html
 
-
+#версия с карточками
 db = DataBase()
 router = Router()
 
