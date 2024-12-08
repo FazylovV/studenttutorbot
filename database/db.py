@@ -86,7 +86,7 @@ class DataBase:
         return result[0][0]  # Возвращаем количество публикаций
 
     # Функция для получения публикаций для конкретной страницы
-    def get_publications_for_page(self, page_number: int, per_page: int = 10):
+    def get_publications_for_page(self, page_number: int, per_page: int = 5):
         offset = (page_number - 1) * per_page  # Рассчитываем смещение для пагинации
         query = f"""
         SELECT * FROM {schema_name}.publications
