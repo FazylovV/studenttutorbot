@@ -235,7 +235,9 @@ async def display_publications(message_or_call: Message, state: FSMContext, page
     if page < total_pages:
         navigation_keyboard.add(InlineKeyboardButton(text="Следующая", callback_data="next_page"))
 
-    await message_or_call.answer(f"Всего публикаций: {total_publications}\n"f"Страница {page} из {total_pages}", reply_markup=navigation_keyboard.as_markup())
+    sent_message = await message_or_call.answer(f"Всего публикаций: {total_publications}\n"f"Страница {page} из {total_pages}", reply_markup=navigation_keyboard.as_markup())
+    sent_messages.append(sent_message)
+    await state.update_data(sent_messages=sent_messages)
     await state.update_data(current_page=page)
 
 # Обработчики кнопок навигации
