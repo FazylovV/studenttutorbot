@@ -72,6 +72,18 @@ async def student_handler(call: CallbackQuery):
     )
     await call.answer()
 
+    @router.callback_query(F.data == 'tutor')
+    async def tutor_handler(call: CallbackQuery):
+        kb = [[KeyboardButton(text='Опубликовать анкету')],
+              [KeyboardButton(text='Главная')],
+              [KeyboardButton(text='Тех. поддержка')]]
+        user_keyboard = ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
+        await call.message.answer(
+            'Отлично, с выбором определились',
+            reply_markup=user_keyboard
+        )
+        await call.answer()
+
 # @router.message(F.text == 'Тех. поддержка')
 # @router.message(Command(commands=["tech_support"]))
 # async def tech_support_handler(message: types.Message):
@@ -430,18 +442,6 @@ async def prev_page(call: CallbackQuery, state: FSMContext):
 
     await call.answer()
 
-
-@router.callback_query(F.data == 'tutor')
-async def tutor_handler(call: CallbackQuery):
-    kb = [[KeyboardButton(text='Опубликовать анкету')],
-          [KeyboardButton(text='Главная')],
-          [KeyboardButton(text='Тех. Поддержка')]]
-    user_keyboard = ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
-    await call.message.answer(
-        'Отлично, с выбором определились',
-        reply_markup=user_keyboard
-    )
-    #await call.answer()
 
 # Возвращаем пользователя к выбору "Студент" или "Репетитор"
 @router.message(F.text == 'Главная')
