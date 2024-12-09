@@ -72,17 +72,17 @@ async def student_handler(call: CallbackQuery):
     )
     await call.answer()
 
-    @router.callback_query(F.data == 'tutor')
-    async def tutor_handler(call: CallbackQuery):
-        kb = [[KeyboardButton(text='Опубликовать анкету')],
-              [KeyboardButton(text='Главная')],
-              [KeyboardButton(text='Тех. поддержка')]]
-        user_keyboard = ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
-        await call.message.answer(
-            'Отлично, с выбором определились',
-            reply_markup=user_keyboard
-        )
-        await call.answer()
+@router.callback_query(F.data == 'tutor')
+async def tutor_handler(call: CallbackQuery):
+    kb = [[KeyboardButton(text='Опубликовать анкету')],
+          [KeyboardButton(text='Главная')],
+          [KeyboardButton(text='Тех. поддержка')]]
+    user_keyboard = ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
+    await call.message.answer(
+        'Отлично, с выбором определились',
+        reply_markup=user_keyboard
+    )
+    await call.answer()
 
 # @router.message(F.text == 'Тех. поддержка')
 # @router.message(Command(commands=["tech_support"]))
@@ -195,12 +195,22 @@ async def search_tutors_message_handler(message: Message, state: FSMContext):
     await display_publications(message, state, 1, per_page)
 
 # Функция отображения публикаций
-async def display_publications(message_or_call, state: FSMContext, page: int, per_page: int):
+async def display_publications(message_or_call: Message, state: FSMContext, page: int, per_page: int):
     data = await state.get_data()
     total_pages = data.get('total_pages', 1)
     total_publications = data.get('total_publications')
+
+    try:
+        get_sent: list[Message] = data.get('sent_messages')
+        for m in get_sent:
+            await m.delete()
+
+    except:
+        pass
+
     publications = db.get_publications_for_page(page, per_page)
     i=(page-1)*per_page
+    sent_messages = []
     for pub in publications:
         i+=1
         publication_text = f"<i>Публикация:</i> {i}\n" \
@@ -209,7 +219,12 @@ async def display_publications(message_or_call, state: FSMContext, page: int, pe
                            f"<i>Информация 2:</i> {pub[4]}\n" \
                            f"<i>Информация 3:</i> {pub[5]}\n" \
                            f"<i>Информация 4:</i> {pub[6]}"
-        await message_or_call.answer(publication_text)#,
+        sent_message: Message = await message_or_call.answer(publication_text)
+        sent_messages.append(sent_message)
+
+    await state.update_data(sent_messages=sent_messages)
+
+        #,
                                      #reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                                      #    [InlineKeyboardButton(text="Подать заявку", callback_data=f"apply_for_tutor_{pub[0]}_{pub[1]}")]
                                      #]))
