@@ -213,12 +213,16 @@ async def display_publications(message_or_call: Message, state: FSMContext, page
     sent_messages = []
     for pub in publications:
         i+=1
-        publication_text = f"<i>Публикация:</i> {i}\n" \
-                           f"<i>ФИО:</i> {pub[2]}\n" \
-                           f"<i>Информация 1:</i> {pub[3]}\n" \
-                           f"<i>Информация 2:</i> {pub[4]}\n" \
-                           f"<i>Информация 3:</i> {pub[5]}\n" \
-                           f"<i>Информация 4:</i> {pub[6]}"
+        publication_text = f"<b><i>Публикация:</i></b> {i}\n" \
+                           f"<b><i>Репетитор:</i></b> {pub[2]}\n" \
+                           f"<b><i>Учреждение:</i></b> {pub[3]}\n" \
+                           f"<b><i>Специальность(направление):</i></b> {pub[4]}\n" \
+                           f"<b><i>Предмет:</i></b> {pub[5]}\n" \
+                           f"<b><i>Опыт преподавания:</i></b> {pub[7]}\n" \
+                           f"<b><i>Удобное время:</i></b> {pub[8]}\n" \
+                           f"<b><i>Стоимость услуги:</i></b> {pub[9]}\n" \
+                           f"<b><i>Контактные данные:</i></b> {pub[6]}"
+
         sent_message: Message = await message_or_call.answer(publication_text)
         sent_messages.append(sent_message)
 
@@ -251,6 +255,7 @@ async def navigate_pages_handler(call: CallbackQuery, state: FSMContext):
     if 1 <= new_page <= total_pages:
         await display_publications(call.message, state, new_page, 5)
     await call.answer()
+
 
 # @router.callback_query(F.data.startswith("apply_for_tutor"))
 # async def apply_for_tutor(call: CallbackQuery,  state: FSMContext):
@@ -378,86 +383,6 @@ async def navigate_pages_handler(call: CallbackQuery, state: FSMContext):
 #
 #     await message.answer("Причина отказа успешно отправлена студенту.")
 #     await state.clear()
-
-
-@router.callback_query(F.data == "next_page")
-async def next_page(call: CallbackQuery, state: FSMContext):
-    # Получаем текущую страницу из состояния
-    data = await state.get_data()
-    current_page = data.get("current_page", 1)
-    total_pages = data.get("total_pages", 1)
-
-    if current_page < total_pages:
-        current_page += 1
-
-        # Сохраняем новую страницу в состояние
-        await state.update_data(current_page=current_page)
-
-        # Получаем публикации для текущей страницы
-        publications = db.get_publications_for_page(current_page)
-
-        publications_text = "\n\n".join([f"<i>Публикация {i+1}</i>: {pub[2]}, {pub[3]}, {pub[4]}, <b>{pub[5]}</b>, {pub[6]}" for i, pub in enumerate(publications)])
-
-        builder = InlineKeyboardBuilder()
-        builder.row(
-            InlineKeyboardButton(text="<<", callback_data="prev_page"),
-            InlineKeyboardButton(text=f"{current_page}/{total_pages}", callback_data="current_page"),
-            InlineKeyboardButton(text=">>", callback_data="next_page")
-        )
-
-        # Добавляем кнопку для каждой публикации
-        i = 1
-        for pub in publications:
-            builder.row(
-                InlineKeyboardButton(text=f"Подать заявку на {i} публикацию", callback_data=f"apply_for_tutor_{pub[0]}_{pub[1]}")
-            )
-            i += 1
-
-        await call.message.edit_text(
-            f"Страница {current_page} из {total_pages}\n\n{publications_text}",
-            reply_markup=builder.as_markup()
-        )
-
-    await call.answer()
-
-@router.callback_query(F.data == "prev_page")
-async def prev_page(call: CallbackQuery, state: FSMContext):
-    # Получаем текущую страницу из состояния
-    data = await state.get_data()
-    current_page = data.get("current_page", 1)
-
-    if current_page > 1:
-        current_page -= 1
-
-        # Сохраняем новую страницу в состояние
-        await state.update_data(current_page=current_page)
-
-        # Получаем публикации для текущей страницы
-        publications = db.get_publications_for_page(current_page)
-
-        publications_text = "\n\n".join([f"<i>Публикация {i+1}</i>: {pub[2]}, {pub[3]}, {pub[4]}, <b>{pub[5]}</b>, {pub[6]}" for i, pub in enumerate(publications)])
-
-        builder = InlineKeyboardBuilder()
-        builder.row(
-            InlineKeyboardButton(text="<<", callback_data="prev_page"),
-            InlineKeyboardButton(text=f"{current_page}/{data['total_pages']}", callback_data="current_page"),
-            InlineKeyboardButton(text=">>", callback_data="next_page")
-        )
-
-        # Добавляем кнопку для каждой публикации
-        i = 1
-        for pub in publications:
-            builder.row(
-                InlineKeyboardButton(text=f"Подать заявку на {i} публикацию", callback_data=f"apply_for_tutor_{pub[0]}_{pub[1]}")
-            )
-            i += 1
-
-        await call.message.edit_text(
-            f"Страница {current_page} из {data['total_pages']}\n\n{publications_text}",
-            reply_markup=builder.as_markup()
-        )
-
-    await call.answer()
 
 
 # Возвращаем пользователя к выбору "Студент" или "Репетитор"
@@ -591,7 +516,7 @@ async def process_contact_telegram(callback_query: types.CallbackQuery, state: F
 
     # Получаем информацию о пользователе
     user = callback_query.from_user
-    username = user.username
+    username = "@" + user.username
     tutor_id = user.id
 
     if username:
@@ -659,7 +584,7 @@ async def finalize_publication(message: Message, state: FSMContext):
     tutor_id = data.get('tutor_id')
 
     # Здесь вы можете добавить код для сохранения данных в БД
-    db.add_publication(tutor_id, full_name, institution, specialty, subject, contact)
+    db.add_publication(tutor_id, full_name, institution, specialty, subject, teach_experience, time_slot, pay_services, contact)
 
     # Формируем сообщение
     message_text = (

@@ -30,7 +30,7 @@ class DataBase:
             return cursor.fetchall()
 
     # Добавление нового публикации с проверкой наличия tutor_id в tutors
-    def add_publication(self, tutor_id, fullname, institution, specialty, subject, contact):
+    def add_publication(self, tutor_id, fullname, institution, specialty, subject, teach_experience, time_slot, pay_services, contact):
         # Проверка, существует ли tutor_id в таблице tutors
         existing_tutor = self.exec_query(f"""
             SELECT COUNT(*) FROM {schema_name}.tutors WHERE tg_id = {tutor_id}
@@ -40,10 +40,10 @@ class DataBase:
         if existing_tutor[0][0] == 0:
             self.add_tutor(tutor_id, fullname)
 
-        contact = '@' + contact
+        #contact = '@' + contact
         # Добавляем публикацию
-        self.exec_update_query(f"""INSERT INTO {schema_name}.publications (tutor_id, fullname, institution, specialty, subject, contact)
-                                   VALUES ('{tutor_id}', '{fullname}', '{institution}', '{specialty}', '{subject}', '{contact}')""")
+        self.exec_update_query(f"""INSERT INTO {schema_name}.publications (tutor_id, fullname, institution, specialty, subject, contact, teach_experience, time_slot, pay_services)
+                                   VALUES ('{tutor_id}', '{fullname}', '{institution}', '{specialty}', '{subject}', '{contact}', '{teach_experience}', '{time_slot}', '{pay_services}')""")
 
 
     def add_student(self, tg_id, fullname, contact):
@@ -66,16 +66,19 @@ class DataBase:
         self.exec_update_query(f"""insert into {schema_name}.requests (student_id, tutor_id, publication_id, description)
                                           values ('{student_id}', '{tutor_id}', '{publication_id}', '{description}')""")
 
-
-    def update_publication(self, tutor_id, fullname, institution, specialty, subject, contact):
-        contact = '@' + contact
+    #тестовый апдейт публикации
+    def update_publication(self, tutor_id, fullname, institution, specialty, subject, teach_experience, time_slot, pay_services, contact):
+        #contact = '@' + contact
         self.exec_update_query(f"""
             UPDATE {schema_name}.publications
             SET fullname = '{fullname}',
                 institution = '{institution}',
                 specialty = '{specialty}',
                 subject = '{subject}',
-                contact = '{contact}'
+                contact = '{contact}',
+                teach_experience = '{teach_experience}',
+                time_slot = '{time_slot}',
+                pay_services = '{pay_services}'
             WHERE tutor_id = {tutor_id} AND subject = '{subject}' -- или другой критерий, который уникально идентифицирует запись
         """)
 
