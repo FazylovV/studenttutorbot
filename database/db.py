@@ -99,6 +99,54 @@ class DataBase:
         result = self.exec_query(query)
         return result
 
+    # Функция для подсчета количества публикаций по фильтрам
+    def get_filtered_publications_count(self, institution=None, specialty=None, subject=None, teach_experience=None,
+                                        time_slot=None, pay_services=None):
+        query = f"SELECT COUNT(*) FROM {schema_name}.publications WHERE TRUE"
+
+        if institution:
+            query += f" AND institution ILIKE '%{institution}%'"
+        if specialty:
+            query += f" AND specialty ILIKE '%{specialty}%'"
+        if subject:
+            query += f" AND subject ILIKE '%{subject}%'"
+        if teach_experience:
+            query += f" AND teach_experience ILIKE '%{teach_experience}%'"
+        if time_slot:
+            query += f" AND time_slot ILIKE '%{time_slot}%'"
+        if pay_services:
+            query += f" AND pay_services < '{pay_services}'"
+
+        result = self.exec_query(query)
+        return result[0][0]  # вернул количество совпадений
+
+
+    # Функция для получения публикаций по фильтрам для конкретной страницы
+    def get_publications_for_page_with_filters(self, page_number: int, per_page: int = 5, institution=None,
+                                               specialty=None, subject=None, teach_experience=None, time_slot=None,
+                                               pay_services=None):
+        offset = (page_number - 1) * per_page  # Рассчитываем смещение для пагинации
+        query = f"SELECT * FROM {schema_name}.publications WHERE TRUE"
+
+        if institution:
+            query += f" AND institution ILIKE '%{institution}%'"
+        if specialty:
+            query += f" AND specialty ILIKE '%{specialty}%'"
+        if subject:
+            query += f" AND subject ILIKE '%{subject}%'"
+        if teach_experience:
+            query += f" AND teach_experience ILIKE '%{teach_experience}%'"
+        if time_slot:
+            query += f" AND time_slot ILIKE '%{time_slot}%'"
+        # if pay_services:
+        #     query += f" AND pay_services ILIKE '%{pay_services}%'"
+        if pay_services:
+            query += f" AND pay_services < '{pay_services}'"
+
+        query += f" ORDER BY id ASC LIMIT {per_page} OFFSET {offset}"  # Ограничиваю количество публикаций для страницы
+        result = self.exec_query(query)
+        return result
+
 
 #db = DataBase()
 

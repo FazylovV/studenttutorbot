@@ -5,9 +5,9 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, message_id, CallbackQuery, InlineKeyboardButton, \
     InputFile, FSInputFile, InlineKeyboardMarkup, InputMediaPhoto
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from aiogram.filters.callback_data import CallbackData
-from aiogram.enums import ParseMode
-from pyexpat.errors import messages
+# from aiogram.filters.callback_data import CallbackData
+# from aiogram.enums import ParseMode
+# from pyexpat.errors import messages
 
 
 from database.db import DataBase
@@ -28,16 +28,36 @@ class Form(StatesGroup):
     specialty = State()
     subject = State()
     full_name = State()
-    contact = State()
-    contact_manual = State()
-    request = State()
-    reject_request = State()
-    accept_request = State()
-    accept_request_student = State()
     teach_experience = State()
     time_slot = State()
     pay_services = State()
     contact_telegram = State()
+    contact = State()
+    contact_manual = State()
+    #request = State()
+    #reject_request = State()
+    #accept_request = State()
+    #accept_request_student = State()
+
+
+class Filters(StatesGroup):
+    institution = State()
+    specialty = State()
+    subject = State()
+    teach_experience = State()
+    time_slot = State()
+    pay_services = State()
+    search = State()
+    one_institution = State()
+    one_specialty = State()
+    one_subject = State()
+    one_teach_experience = State()
+    one_time_slot = State()
+    one_pay_services = State()
+    one_search = State()
+    publications_with_filters = State()
+    waiting_for_search = State()
+
 
 @router.message(Command("start"))
 async def start_handler(message: Message):
@@ -67,7 +87,7 @@ async def student_handler(call: CallbackQuery):
           [KeyboardButton(text='Тех. поддержка')]]
     user_keyboard = ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
     await call.message.answer(
-        'Отлично с выбором определились',
+        'Отлично, с выбором определились',
         reply_markup=user_keyboard
     )
     await call.answer()
@@ -183,23 +203,281 @@ async def tech_support_handler(message: Message, state: FSMContext):
 # Обработчик для текстового сообщения
 @router.message(F.text == 'Поиск репетитора')
 async def search_tutors_message_handler(message: Message, state: FSMContext):
-    # Инициализация состояния
+    # Отправляем сообщение с выбором способа поиска
+    await message.answer("Как вы хотите искать репетитора?\nВыберите один из вариантов:",
+                         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                             [InlineKeyboardButton(text="Все публикации", callback_data="all_publications")],
+                             [InlineKeyboardButton(text="С фильтрами", callback_data="with_filters")]
+                         ]))
+
+#отображение всех публикаций
+@router.callback_query(F.data == 'all_publications')
+async def all_publications_handler(call: CallbackQuery, state: FSMContext):
+    # отображение числа всех публикаций
     total_publications = db.get_publications_count()
     if total_publications == 0:
-        await message.answer("На данный момент нет доступных репетиторов.")
+        await call.message.answer("На данный момент нет доступных репетиторов.")
         return
 
     per_page = 5  # Количество публикаций на странице
     page_count = (total_publications // per_page) + (1 if total_publications % per_page else 0)
     await state.update_data(total_publications=total_publications, total_pages=page_count, current_page=1)
-    await display_publications(message, state, 1, per_page)
+    await display_publications(call.message, state, 1, per_page)
+
+
+@router.callback_query(F.data == 'with_filters')
+async def with_filters_handler(call: CallbackQuery, state: FSMContext):
+    # Отправляем сообщение с выбором фильтров
+    await call.message.answer("Выберите фильтр:",
+                              reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                                  [InlineKeyboardButton(text="Все фильтры", callback_data="all_filters")],
+                                  [InlineKeyboardButton(text="Учреждение", callback_data="institution")],
+                                  [InlineKeyboardButton(text="Специальность", callback_data="specialty")],
+                                  [InlineKeyboardButton(text="Предмет", callback_data="subject")],
+                                  [InlineKeyboardButton(text="Опыт преподавателя", callback_data="experience")],
+                                  [InlineKeyboardButton(text="Время занятия", callback_data="time_slot")],
+                                  [InlineKeyboardButton(text="Стоимость занятия", callback_data="price")]
+                              ]))
+    await call.answer()
+
+
+#Фильтры
+#все фильтры
+@router.callback_query(F.data == 'all_filters')
+async def all_filters_handler(call: CallbackQuery, state: FSMContext):
+    # Запрашиваем все фильтры по порядку
+    await call.message.answer("Введите Учреждение:")
+    await state.set_state(Filters.institution)
+    print("Состояние установлено на Filters.institution")
+    current_state = await state.get_state()
+    print(f"Текущее состояние: {current_state}")
+
+
+#фильтр по учреждению
+@router.callback_query(F.data == 'institution')
+async def institution_handler(call: CallbackQuery, state: FSMContext):
+    await call.message.answer("Введите Учреждение:")
+    await state.set_state(Filters.one_institution)
+
+
+#фильтр по специальности
+@router.callback_query(F.data == 'specialty')
+async def specialty_handler(call: CallbackQuery, state: FSMContext):
+    await call.message.answer("Введите Специальность:")
+    await state.set_state(Filters.one_specialty)
+
+
+#фильтр по предмету
+@router.callback_query(F.data == 'subject')
+async def specialty_handler(call: CallbackQuery, state: FSMContext):
+    await call.message.answer("Введите Предмет:")
+    await state.set_state(Filters.one_subject)
+
+
+#фильтр по опыту преподавания
+@router.callback_query(F.data == 'experience')
+async def experience_handler(call: CallbackQuery, state: FSMContext):
+    await call.message.answer("Введите Опыт преподавания:")
+    await state.set_state(Filters.one_teach_experience)
+
+
+#фильтр по времени занятия
+@router.callback_query(F.data == 'time_slot')
+async def time_slot_handler(call: CallbackQuery, state: FSMContext):
+    await call.message.answer("Введите Время занятия:")
+    await state.set_state(Filters.one_time_slot)
+
+
+#фильтр по стоимости занятия
+@router.callback_query(F.data == 'price')
+async def price_handler(call: CallbackQuery, state: FSMContext):
+    await call.message.answer("Введите максимальную Стоимость занятия:")
+    await state.set_state(Filters.one_pay_services)
+
+
+#запрос института
+@router.message(Filters.institution)
+async def process_institution(message: Message, state: FSMContext):
+    institution = message.text
+    print("Обработчик для учреждения сработал")  # Отладочное сообщение
+    await state.update_data(institution=institution)
+    await message.answer("Учреждение сохранено. Теперь введите Специальность:")
+    await state.set_state(Filters.specialty)
+
+
+# Запрос специальности
+@router.message(Filters.specialty)
+async def process_specialty(message: Message, state: FSMContext):
+    specialty = message.text
+    await state.update_data(specialty=specialty)
+    await message.answer("Специальность сохранена. Теперь введите Предмет:")
+    await state.set_state(Filters.subject)
+
+# Запрос предмета
+@router.message(Filters.subject)
+async def process_subject(message: Message, state: FSMContext):
+    subject = message.text
+    await state.update_data(subject=subject)
+    await message.answer("Предмет сохранен. Теперь введите Опыт преподавания:")
+    await state.set_state(Filters.teach_experience)
+
+# Запрос опыта
+@router.message(Filters.teach_experience)
+async def process_teach_experience(message: Message, state: FSMContext):
+    teach_experience = message.text
+    await state.update_data(teach_experience=teach_experience)
+    await message.answer("Опыт преподавания сохранен. Теперь введите Время занятия:")
+    await state.set_state(Filters.time_slot)
+
+# Запрос времени
+@router.message(Filters.time_slot)
+async def process_time_slot(message: Message, state: FSMContext):
+    time_slot = message.text
+    await state.update_data(time_slot=time_slot)
+    await message.answer("Время занятия сохранено. Теперь введите Стоимость занятия:")
+    await state.set_state(Filters.pay_services)
+
+#запрос стоимости
+@router.message(Filters.pay_services)
+async def process_pay_services(message: Message, state: FSMContext):
+    pay_services = message.text
+    await state.update_data(pay_services=pay_services)
+
+    # Получаем все данные, которые были собраны
+    data = await state.get_data()
+    institution = data.get('institution')
+    specialty = data.get('specialty')
+    subject = data.get('subject')
+    teach_experience = data.get('teach_experience')
+    time_slot = data.get('time_slot')
+    pay_services = data.get('pay_services')
+
+    await message.answer("Ваши данные успешно собраны:\n"
+                         f"Учреждение: {institution}\n"
+                         f"Специальность: {specialty}\n"
+                         f"Предмет: {subject}\n"
+                         f"Опыт преподавания: {teach_experience}\n"
+                         f"Время занятия: {time_slot}\n"
+                         f"Стоимость занятия: {pay_services}\n"
+                         "Теперь мы можем выполнить поиск репетиторов по этим критериям.",
+                         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                             [InlineKeyboardButton(text="Поиск", callback_data="filtered_search")]
+                         ]))
+    # Установите состояние для ожидания нажатия кнопки "Поиск"
+    await state.set_state(Filters.waiting_for_search)
+    #await state.set_state(Filters.publications_with_filters)
+    #await filtered_publications_handler(message, state)
+
+
+@router.message(Filters.one_institution)
+async def process_institution(message: Message, state: FSMContext):
+    await state.update_data(institution=message.text)
+    await message.answer("Учреждение получено. Начать поиск?",
+                         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                             [InlineKeyboardButton(text="Поиск", callback_data="filtered_search")]
+                         ]))
+    await state.set_state(Filters.waiting_for_search)
+    #await state.set_state(Filters.publications_with_filters)
+    #await filtered_publications_handler(message, state)
+
+
+
+@router.message(Filters.one_specialty)
+async def process_specialty(message: Message, state: FSMContext):
+    await state.update_data(specialty=message.text)
+    await message.answer("Специальность сохранена. Начать поиск?",
+                         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                             [InlineKeyboardButton(text="Поиск", callback_data="filtered_search")]
+                         ]))
+    await state.set_state(Filters.waiting_for_search)
+    #await filtered_publications_handler(message, state)
+    #await state.set_state(Filters.publications_with_filters)
+
+
+@router.message(Filters.one_subject)
+async def process_subject(message: Message, state: FSMContext):
+    await state.update_data(subject=message.text)
+    await message.answer("Предмет сохранен. Начать поиск?",
+                         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                             [InlineKeyboardButton(text="Поиск", callback_data="filtered_search")]
+                         ]))
+    await state.set_state(Filters.waiting_for_search)
+    #await filtered_publications_handler(message, state)
+    # await state.set_state(Filters.publications_with_filters)
+
+
+@router.message(Filters.one_teach_experience)
+async def process_teach_experience(message: Message, state: FSMContext):
+    await state.update_data(teach_experience=message.text)
+    await message.answer("Опыт преподавания сохранен. Начать поиск?",
+                         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                             [InlineKeyboardButton(text="Поиск", callback_data="filtered_search")]
+                         ]))
+    await state.set_state(Filters.waiting_for_search)
+    #await filtered_publications_handler(message, state)
+    # await state.set_state(Filters.publications_with_filters)
+
+
+@router.message(Filters.one_time_slot)
+async def process_time_slot(message: Message, state: FSMContext):
+    await state.update_data(time_slot=message.text)
+    await message.answer("Время занятия сохранено. Начать поиск?",
+                         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                             [InlineKeyboardButton(text="Поиск", callback_data="filtered_search")]
+                         ]))
+    await state.set_state(Filters.waiting_for_search)
+    #await filtered_publications_handler(message, state)
+    #await state.set_state(Filters.publications_with_filters)
+
+
+@router.message(Filters.one_pay_services)
+async def process_pay_services(message: Message, state: FSMContext):
+    await state.update_data(pay_services=message.text)
+    await message.answer("Стоимость занятия сохранена. Начать поиск?",
+                         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                             [InlineKeyboardButton(text="Поиск", callback_data="filtered_search")]
+                         ]))
+    await state.set_state(Filters.waiting_for_search)
+    #await filtered_publications_handler(message, state)
+    # await state.set_state(Filters.publications_with_filters)
+
+#Поиск
+#@router.message(Filters.publications_with_filters)
+@router.callback_query(F.data == 'filtered_search')
+async def filtered_publications_handler(call: CallbackQuery, state: FSMContext):
+    await call.message.answer("Идёт поиск...")
+    # отображение числа всех публикаций
+    data = await state.get_data()
+    institution = data.get('institution')
+    specialty = data.get('specialty')
+    subject = data.get('subject')
+    teach_experience = data.get('teach_experience')
+    time_slot = data.get('time_slot')
+    pay_services = data.get('pay_services')
+    #тута я получаю количество публикаций подходящих под фильтры
+    total_publications = db.get_filtered_publications_count(institution, specialty, subject, teach_experience, time_slot, pay_services)
+    if total_publications == 0:
+        await call.message.answer("На данный момент нет доступных репетиторов.")
+        return
+
+    per_page = 5  # Количество публикаций на странице
+    page_count = (total_publications // per_page) + (1 if total_publications % per_page else 0)
+    await state.update_data(total_publications=total_publications, total_pages=page_count, current_page=1, isFilter=1)
+    await display_publications(call.message, state, 1, per_page, institution, specialty, subject, teach_experience, time_slot, pay_services)
+
 
 # Функция отображения публикаций
-async def display_publications(message_or_call: Message, state: FSMContext, page: int, per_page: int):
+async def display_publications(message_or_call: Message, state: FSMContext, page: int, per_page: int, institution=None, specialty=None, subject=None, teach_experience=None, time_slot=None, pay_services=None):
     data = await state.get_data()
+    institution = data.get('institution')
+    specialty = data.get('specialty')
+    subject = data.get('subject')
+    teach_experience = data.get('teach_experience')
+    time_slot = data.get('time_slot')
+    pay_services = data.get('pay_services')
     total_pages = data.get('total_pages', 1)
     total_publications = data.get('total_publications')
-
+    isFilter = data.get('isFilter')
     try:
         get_sent: list[Message] = data.get('sent_messages')
         for m in get_sent:
@@ -208,7 +486,13 @@ async def display_publications(message_or_call: Message, state: FSMContext, page
     except:
         pass
 
-    publications = db.get_publications_for_page(page, per_page)
+    #можно просто так:
+    #publications = db.get_publications_for_page_with_filters(page, per_page, institution, specialty, subject, teach_experience, time_slot, pay_services)
+    if isFilter != 1:
+        publications = db.get_publications_for_page(page, per_page)
+    else:
+        publications = db.get_publications_for_page_with_filters(page, per_page, institution, specialty, subject, teach_experience, time_slot, pay_services)
+
     i=(page-1)*per_page
     sent_messages = []
     for pub in publications:
@@ -250,10 +534,11 @@ async def navigate_pages_handler(call: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     current_page = data.get('current_page', 1)
     total_pages = data.get('total_pages', 1)
+    #isFilter = data.get('isFilter')
 
     new_page = current_page - 1 if call.data == 'prev_page' else current_page + 1
     if 1 <= new_page <= total_pages:
-        await display_publications(call.message, state, new_page, 5)
+        await display_publications(call.message, state, new_page, 5 )
     await call.answer()
 
 
@@ -461,46 +746,7 @@ async def process_pay_services(message: Message, state: FSMContext):
     )
 
     await message.answer("Как с вами связаться?", reply_markup=builder.as_markup())
-    #await state.set_state(Form.pay_services)
 
-
-# # обработка нажатия на кнопку "Ввести вручную"
-# @router.callback_query(lambda c: c.data == "contact_manual")
-# async def process_manual_contact(callback_query: types.CallbackQuery, state: FSMContext):
-#     await callback_query.message.answer("Введите контактные данные:")
-#     await state.set_state(Form.contact_manual)
-#
-#
-# # обработка ввода контактных данных вручную
-# @router.message(Form.contact_manual)
-# async def process_contact_input(message: Message, state: FSMContext):
-#     await state.update_data(contact=message.text)
-#     tutor_id = message.from_user.id
-#     await state.update_data(tutor_id=tutor_id)
-#     await message.answer(f"Контактные данные сохранены: {message.text}")
-#     await finalize_publication(message, state)
-#
-#
-# # обработка ввода контактных данных вручную
-# @router.callback_query(lambda c: c.data == "contact_telegram")
-# async def process_contact_telegram(callback_query: types.CallbackQuery, state: FSMContext):
-#     await callback_query.message.answer("Получаем данные...")
-#     await state.set_state(Form.contact_telegram)
-#
-# @router.message(Form.contact_telegram)
-# async def process_contact(message: Message, state: FSMContext):
-#     username = message.from_user.username
-#     tutor_id = message.from_user.id
-#     if username:
-#         await state.update_data(contact=username)
-#         await state.update_data(tutor_id=tutor_id)
-#         await message.answer("Ваш юзернейм успешно получен!")
-#     else:
-#         await message.answer("У вас нет установленного юзернейма. Пожалуйста, введите его вручную:")
-#         await state.set_state(Form.contact_manual) # просим ввести руками
-#         return
-#
-#     await finalize_publication(message, state)
 
 # Обработчик для кнопки "Телеграмм"
 @router.callback_query(lambda c: c.data == "contact_telegram")
