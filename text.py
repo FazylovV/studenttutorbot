@@ -5,6 +5,8 @@ hello_text = '''
 1. Получить помощь от других студентов
 2. Помочь другим студентам и заработать на этом деньги
 
+А также оставить свой отзыв в форме <a href="https://docs.google.com/forms/d/e/1FAIpQLSeoOdJBApTDKfNx5BHiU_-fe65a50u15yFbwOMTKjC4NssmUw/viewform?usp=dialog">обратной связи</a>!
+
 Перед началом давайте определимся, вы репетитор или студент?'''
 
 questionnaire_template = '''отправьте сообщение в таком формате, пример:

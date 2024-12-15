@@ -184,7 +184,7 @@ async def tutor_handler(call: CallbackQuery):
 
 @router.message(F.text == 'Тех. поддержка')
 async def tech_support_handler(message: Message, state: FSMContext):
-   admin_contact = "@Mihter_2208\t@fazylov_v\n@irinacreek\t@Yazshiopl"  # Замените на реальный юзернейм администратора
+   admin_contact = "@Mihter_2208,\t@fazylov_v,\n@irinacreek,\t@Yazshiopl"  # Замените на реальный юзернейм администратора
    admins = admin_contact.split()
    await state.update_data(admins=admins)
 
@@ -192,10 +192,19 @@ async def tech_support_handler(message: Message, state: FSMContext):
    # keyboard = InlineKeyboardMarkup(inline_keyboard=[
    #     [InlineKeyboardButton(text='Чат с администрацией', callback_data='chat_with_admin')]
    # ])
-   await message.answer(
-       f"Если у вас возникли вопросы или проблемы, вы можете обратиться в техподдержку:\n\n"
-       f"Контакты администрации: {admin_contact}\n"
-       f"Мы рады помочь вам!")#\nМожете начать \"чат с администрацией\", если контакты выше не доступны.", reply_markup=keyboard)
+
+   # Путь к изображению
+   photo_path = './img/TPimage.jpg'
+
+   # Отправка фото с подписью
+   await message.answer_photo(photo=FSInputFile(photo_path),  # Передаем путь к файлу
+                              caption="Если у вас возникли вопросы или проблемы, вы можете обратиться в техподдержку:\n\n"
+                                      f"Контакты администрации: {admin_contact}\n"
+                                      f"Мы рады помочь вам!")
+   #await message.answer(
+   #    f"Если у вас возникли вопросы или проблемы, вы можете обратиться в техподдержку:\n\n"
+   #    f"Контакты администрации: {admin_contact}\n"
+   #    f"Мы рады помочь вам!")#\nМожете начать \"чат с администрацией\", если контакты выше не доступны.", reply_markup=keyboard)
 
 
 
@@ -203,6 +212,7 @@ async def tech_support_handler(message: Message, state: FSMContext):
 # Обработчик для текстового сообщения
 @router.message(F.text == 'Поиск репетитора')
 async def search_tutors_message_handler(message: Message, state: FSMContext):
+    state.clear()
     # Отправляем сообщение с выбором способа поиска
     await message.answer("Как вы хотите искать репетитора?\nВыберите один из вариантов:",
                          reply_markup=InlineKeyboardMarkup(inline_keyboard=[
@@ -213,6 +223,7 @@ async def search_tutors_message_handler(message: Message, state: FSMContext):
 #отображение всех публикаций
 @router.callback_query(F.data == 'all_publications')
 async def all_publications_handler(call: CallbackQuery, state: FSMContext):
+    state.clear()
     # отображение числа всех публикаций
     total_publications = db.get_publications_count()
     if total_publications == 0:
@@ -228,7 +239,7 @@ async def all_publications_handler(call: CallbackQuery, state: FSMContext):
 @router.callback_query(F.data == 'with_filters')
 async def with_filters_handler(call: CallbackQuery, state: FSMContext):
     # Отправляем сообщение с выбором фильтров
-    await call.message.answer("Выберите фильтр:",
+    await call.message.answer("<b>Выберите фильтр.</b>\n<i>Сбрасываются только при повторном нажатии <b>\"Поиск репетитора\"</b> или <b>\"Все публикации\"</b></i>:",
                               reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                                   [InlineKeyboardButton(text="Все фильтры", callback_data="all_filters")],
                                   [InlineKeyboardButton(text="Учреждение", callback_data="institution")],
