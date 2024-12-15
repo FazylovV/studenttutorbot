@@ -58,7 +58,7 @@ class Filters(StatesGroup):
     publications_with_filters = State()
     waiting_for_search = State()
 
-
+print("v1.0")
 @router.message(Command("start"))
 async def start_handler(message: Message):
     print("Start command received")
@@ -212,7 +212,7 @@ async def tech_support_handler(message: Message, state: FSMContext):
 # Обработчик для текстового сообщения
 @router.message(F.text == 'Поиск репетитора')
 async def search_tutors_message_handler(message: Message, state: FSMContext):
-    state.clear()
+    await state.clear()
     # Отправляем сообщение с выбором способа поиска
     await message.answer("Как вы хотите искать репетитора?\nВыберите один из вариантов:",
                          reply_markup=InlineKeyboardMarkup(inline_keyboard=[
@@ -223,7 +223,7 @@ async def search_tutors_message_handler(message: Message, state: FSMContext):
 #отображение всех публикаций
 @router.callback_query(F.data == 'all_publications')
 async def all_publications_handler(call: CallbackQuery, state: FSMContext):
-    state.clear()
+    await state.clear()
     # отображение числа всех публикаций
     total_publications = db.get_publications_count()
     if total_publications == 0:
