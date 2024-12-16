@@ -459,7 +459,7 @@ async def process_subject(message: Message, state: FSMContext):
             "<b>Пожалуйста, введите название предмета заново:</b>")
         return
     await state.update_data(subject=subject)
-    await message.answer("<b>Название предмета<b> сохранено. Начать поиск?",
+    await message.answer("<b>Название предмета</b> сохранено. Начать поиск?",
                          reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                              [InlineKeyboardButton(text="Поиск", callback_data="filtered_search")]
                          ]))
