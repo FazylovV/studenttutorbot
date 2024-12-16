@@ -257,102 +257,135 @@ async def with_filters_handler(call: CallbackQuery, state: FSMContext):
 @router.callback_query(F.data == 'all_filters')
 async def all_filters_handler(call: CallbackQuery, state: FSMContext):
     # Запрашиваем все фильтры по порядку
-    await call.message.answer("Введите Учреждение:")
+    await call.message.answer("Введите <b>название учреждения</b>:")
     await state.set_state(Filters.institution)
-    print("Состояние установлено на Filters.institution")
-    current_state = await state.get_state()
-    print(f"Текущее состояние: {current_state}")
 
 
 #фильтр по учреждению
 @router.callback_query(F.data == 'institution')
 async def institution_handler(call: CallbackQuery, state: FSMContext):
-    await call.message.answer("Введите Учреждение:")
+    await call.message.answer("Введите <b>название учреждения</b>:")
     await state.set_state(Filters.one_institution)
 
 
 #фильтр по специальности
 @router.callback_query(F.data == 'specialty')
 async def specialty_handler(call: CallbackQuery, state: FSMContext):
-    await call.message.answer("Введите Специальность:")
+    await call.message.answer("Введите <b>название специальности</b>:")
     await state.set_state(Filters.one_specialty)
 
 
 #фильтр по предмету
 @router.callback_query(F.data == 'subject')
 async def specialty_handler(call: CallbackQuery, state: FSMContext):
-    await call.message.answer("Введите Предмет:")
+    await call.message.answer("Введите <b>название предмета</b>:")
     await state.set_state(Filters.one_subject)
 
 
 #фильтр по опыту преподавания
 @router.callback_query(F.data == 'experience')
 async def experience_handler(call: CallbackQuery, state: FSMContext):
-    await call.message.answer("Введите Опыт преподавания:")
+    await call.message.answer("Введите <b>желаемый опыт преподавания(в годах)</b>:")
     await state.set_state(Filters.one_teach_experience)
 
 
 #фильтр по времени занятия
 @router.callback_query(F.data == 'time_slot')
 async def time_slot_handler(call: CallbackQuery, state: FSMContext):
-    await call.message.answer("Введите Время занятия:")
+    await call.message.answer("Введите <b>время занятия</b>:")
     await state.set_state(Filters.one_time_slot)
 
 
 #фильтр по стоимости занятия
 @router.callback_query(F.data == 'price')
 async def price_handler(call: CallbackQuery, state: FSMContext):
-    await call.message.answer("Введите максимальную Стоимость занятия:")
+    await call.message.answer("Введите <b>максимальную стоимость занятия</b>:")
     await state.set_state(Filters.one_pay_services)
 
 
 #запрос института
 @router.message(Filters.institution)
 async def process_institution(message: Message, state: FSMContext):
-    institution = message.text
-    print("Обработчик для учреждения сработал")  # Отладочное сообщение
+    institution = message.text.strip()
+    if len(institution) > 150:
+        await message.reply(
+            "<b>Название учреждения</b> не должно превышать 150 символов.\n"
+            "<b>Пожалуйста, введите название учреждения заново:</b>")
+        return
     await state.update_data(institution=institution)
-    await message.answer("Учреждение сохранено. Теперь введите Специальность:")
+    await message.answer("<b>Название учреждения</b> сохранено.\n"
+                         "Теперь введите <b>название специальность</b>:")
     await state.set_state(Filters.specialty)
 
 
 # Запрос специальности
 @router.message(Filters.specialty)
 async def process_specialty(message: Message, state: FSMContext):
-    specialty = message.text
+    specialty = message.text.strip()
+    if len(specialty) > 100:
+        await message.reply(
+            "<b>Название специальности</b> не должно превышать 100 символов.\n"
+            "<b>Пожалуйста, введите название специальности заново:</b>")
+        return
     await state.update_data(specialty=specialty)
-    await message.answer("Специальность сохранена. Теперь введите Предмет:")
+    await message.answer("<b>Название специальности</b> сохранено.\n"
+                         "Теперь введите <b>название предмета</b>:")
     await state.set_state(Filters.subject)
 
 # Запрос предмета
 @router.message(Filters.subject)
 async def process_subject(message: Message, state: FSMContext):
-    subject = message.text
-    await state.update_data(subject=subject)
-    await message.answer("Предмет сохранен. Теперь введите Опыт преподавания:")
+    subject = message.text.strip()
+    if len(subject) > 100:
+        await message.reply(
+            "<b>Название предмета</b> не должно превышать 100 символов.\n"
+            "<b>Пожалуйста, введите название предмета заново:</b>")
+        return
+    await message.answer("<b>Название предмета</b> сохранено.\n"
+                         "Теперь введите <b>опыт преподавания</b>:")
     await state.set_state(Filters.teach_experience)
 
 # Запрос опыта
 @router.message(Filters.teach_experience)
 async def process_teach_experience(message: Message, state: FSMContext):
-    teach_experience = message.text
+    teach_experience = message.text.strip()
+    if not teach_experience.isdigit() or int(teach_experience) < 0 or int(teach_experience) >= 100:
+        await message.reply(
+            "<b>Опыт преподавания</b> должен быть неотрицательным целым числом и меньше 100 лет.\n"
+            "<b>Пожалуйста, введите опыт преподавания заново:</b>")
+        return
     await state.update_data(teach_experience=teach_experience)
-    await message.answer("Опыт преподавания сохранен. Теперь введите Время занятия:")
+    await message.answer("<b>Опыт преподавания</b> сохранен.\n"
+                         "Теперь введите <b>время занятия</b>:")
     await state.set_state(Filters.time_slot)
 
 # Запрос времени
 @router.message(Filters.time_slot)
 async def process_time_slot(message: Message, state: FSMContext):
-    time_slot = message.text
+    time_slot = message.text.strip()
+    if len(time_slot) > 200:
+        await message.reply(
+            "<b>Время занятий</b> не должно превышать 200 символов.\n"
+            "<b>Пожалуйста, введите время занятий заново:</b>")
+        return
     await state.update_data(time_slot=time_slot)
-    await message.answer("Время занятия сохранено. Теперь введите Стоимость занятия:")
+    await message.answer("<b>Время занятия</b> сохранено.\n"
+                         "Теперь введите <b>Стоимость занятия</b>(в рублях):")
     await state.set_state(Filters.pay_services)
 
 #запрос стоимости
 @router.message(Filters.pay_services)
 async def process_pay_services(message: Message, state: FSMContext):
-    pay_services = message.text
-    await state.update_data(pay_services=pay_services)
+    try:
+        pay_services = int(message.text)
+        if pay_services >= 0:
+            await state.update_data(pay_services=pay_services)
+        else:
+            await message.reply("Пожалуйста, введите неотрицательное целое число, <b>стоимость</b> заново:")
+            return
+    except ValueError:
+        await message.reply("Пожалуйста, введите корректное целое число, <b>стоимость</b> заново:")
+        return
 
     # Получаем все данные, которые были собраны
     data = await state.get_data()
@@ -365,11 +398,11 @@ async def process_pay_services(message: Message, state: FSMContext):
 
     await message.answer("Ваши данные успешно собраны:\n"
                          f"Учреждение: {institution}\n"
-                         f"Специальность: {specialty}\n"
+                         f"Специальность(направление): {specialty}\n"
                          f"Предмет: {subject}\n"
-                         f"Опыт преподавания: {teach_experience}\n"
+                         f"Опыт преподавания: {teach_experience} (год/лет/года)\n"
                          f"Время занятия: {time_slot}\n"
-                         f"Стоимость занятия: {pay_services}\n"
+                         f"Стоимость занятия: {pay_services} RUB\n"
                          "Теперь мы можем выполнить поиск репетиторов по этим критериям.",
                          reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                              [InlineKeyboardButton(text="Поиск", callback_data="filtered_search")]
@@ -382,8 +415,14 @@ async def process_pay_services(message: Message, state: FSMContext):
 
 @router.message(Filters.one_institution)
 async def process_institution(message: Message, state: FSMContext):
-    await state.update_data(institution=message.text)
-    await message.answer("Учреждение получено. Начать поиск?",
+    institution = message.text.strip()
+    if len(institution) > 150:
+        await message.reply(
+            "<b>Название учреждения</b> не должно превышать 150 символов.\n"
+            "<b>Пожалуйста, введите название учреждения заново:</b>")
+        return
+    await state.update_data(institution=institution)
+    await message.answer("<b>Название учреждения</b> получено. Начать поиск?",
                          reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                              [InlineKeyboardButton(text="Поиск", callback_data="filtered_search")]
                          ]))
@@ -395,8 +434,14 @@ async def process_institution(message: Message, state: FSMContext):
 
 @router.message(Filters.one_specialty)
 async def process_specialty(message: Message, state: FSMContext):
-    await state.update_data(specialty=message.text)
-    await message.answer("Специальность сохранена. Начать поиск?",
+    specialty = message.text.strip()
+    if len(specialty) > 100:
+        await message.reply(
+            "<b>Название специальности</b> не должно превышать 100 символов.\n"
+            "<b>Пожалуйста, введите название специальности заново:</b>")
+        return
+    await state.update_data(specialty=specialty)
+    await message.answer("<b>Название специальности</b> сохранено. Начать поиск?",
                          reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                              [InlineKeyboardButton(text="Поиск", callback_data="filtered_search")]
                          ]))
@@ -407,8 +452,14 @@ async def process_specialty(message: Message, state: FSMContext):
 
 @router.message(Filters.one_subject)
 async def process_subject(message: Message, state: FSMContext):
-    await state.update_data(subject=message.text)
-    await message.answer("Предмет сохранен. Начать поиск?",
+    subject = message.text.strip()
+    if len(subject) > 100:
+        await message.reply(
+            "<b>Название предмета</b> не должно превышать 100 символов.\n"
+            "<b>Пожалуйста, введите название предмета заново:</b>")
+        return
+    await state.update_data(subject=subject)
+    await message.answer("<b>Название предмета<b> сохранено. Начать поиск?",
                          reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                              [InlineKeyboardButton(text="Поиск", callback_data="filtered_search")]
                          ]))
@@ -419,8 +470,14 @@ async def process_subject(message: Message, state: FSMContext):
 
 @router.message(Filters.one_teach_experience)
 async def process_teach_experience(message: Message, state: FSMContext):
-    await state.update_data(teach_experience=message.text)
-    await message.answer("Опыт преподавания сохранен. Начать поиск?",
+    teach_experience = message.text.strip()
+    if not teach_experience.isdigit() or int(teach_experience) < 0 or int(teach_experience) >= 100:
+        await message.reply(
+            "<b>Опыт преподавания</b> должен быть неотрицательным целым числом и меньше 100 лет.\n"
+            "<b>Пожалуйста, введите опыт преподавания заново:</b>")
+        return
+    await state.update_data(teach_experience=teach_experience)
+    await message.answer("<b>Опыт преподавания</b> сохранен. Начать поиск?",
                          reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                              [InlineKeyboardButton(text="Поиск", callback_data="filtered_search")]
                          ]))
@@ -431,8 +488,14 @@ async def process_teach_experience(message: Message, state: FSMContext):
 
 @router.message(Filters.one_time_slot)
 async def process_time_slot(message: Message, state: FSMContext):
-    await state.update_data(time_slot=message.text)
-    await message.answer("Время занятия сохранено. Начать поиск?",
+    time_slot = message.text.strip()
+    if len(time_slot) > 200:
+        await message.reply(
+            "<b>Время занятий</b> не должно превышать 200 символов.\n"
+            "<b>Пожалуйста, введите время занятий заново:</b>")
+        return
+    await state.update_data(time_slot=time_slot)
+    await message.answer("<b>Время занятия</b> сохранено. Начать поиск?",
                          reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                              [InlineKeyboardButton(text="Поиск", callback_data="filtered_search")]
                          ]))
@@ -443,8 +506,17 @@ async def process_time_slot(message: Message, state: FSMContext):
 
 @router.message(Filters.one_pay_services)
 async def process_pay_services(message: Message, state: FSMContext):
-    await state.update_data(pay_services=message.text)
-    await message.answer("Стоимость занятия сохранена. Начать поиск?",
+    try:
+        pay_services = int(message.text)
+        if pay_services >= 0:
+            await state.update_data(pay_services=pay_services)
+        else:
+            await message.reply("Пожалуйста, введите неотрицательное целое число, <b>стоимость</b> заново:")
+            return
+    except ValueError:
+        await message.reply("Пожалуйста, введите корректное целое число, <b>стоимость</b> заново:")
+        return
+    await message.answer("<b>Стоимость занятия</b> сохранена. Начать поиск?",
                          reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                              [InlineKeyboardButton(text="Поиск", callback_data="filtered_search")]
                          ]))
@@ -513,9 +585,9 @@ async def display_publications(message_or_call: Message, state: FSMContext, page
                            f"<b><i>Учреждение:</i></b> {pub[3]}\n" \
                            f"<b><i>Специальность(направление):</i></b> {pub[4]}\n" \
                            f"<b><i>Предмет:</i></b> {pub[5]}\n" \
-                           f"<b><i>Опыт преподавания:</i></b> {pub[7]}\n" \
+                           f"<b><i>Опыт преподавания:</i></b> {pub[7]} (год/лет/года)\n" \
                            f"<b><i>Удобное время:</i></b> {pub[8]}\n" \
-                           f"<b><i>Стоимость услуги:</i></b> {pub[9]}\n" \
+                           f"<b><i>Стоимость услуги:</i></b> {pub[9]} RUB\n" \
                            f"<b><i>Контактные данные:</i></b> {pub[6]}"
 
         sent_message: Message = await message_or_call.answer(publication_text)
@@ -696,58 +768,97 @@ async def main_handler(message: Message):
         reply_markup=builder.as_markup()
     )
 
+
 @router.message(F.text == 'Опубликовать анкету')
 async def publication_handler(message: Message, state: FSMContext):
-    await message.answer("ФИО (как к вам обращаться):")
+    await message.answer("<b>ФИО</b> (как к вам обращаться?):")
     await state.set_state(Form.full_name)
 
 #получаем фулл нейм и просим учреждение
 @router.message(Form.full_name)
 async def process_full_name(message: Message, state: FSMContext):
-    await state.update_data(full_name=message.text)
+    full_name = message.text.strip()  # убрал пробелы лишние
+    if len(full_name) > 110:
+        await message.reply("Количество символов не должно превышать 110 символов.\n"
+                            "<b>Пожалуйста, введите ваше ФИО заново:</b>")
+        return
+    await state.update_data(full_name=full_name)
     await message.answer("Введите учреждение:")
     await state.set_state(Form.institution)
 
 #получаем учреждение и просим специальность
 @router.message(Form.institution)
 async def process_institution(message: Message, state: FSMContext):
-    await state.update_data(institution=message.text)
-    await message.answer("Введите специальность:")
+    institution = message.text.strip() #убрал пробелы лишние
+    if len(institution) > 150:
+        await message.reply("<b>Название учреждения</b> не должно превышать 150 символов.\n"
+                            "<b>Пожалуйста, введите название вашего учреждения заново:</b>")
+        return
+    await state.update_data(institution=institution)
+    await message.answer("Введите <b>название специальность</b>:")
     await state.set_state(Form.specialty)
 
 #получаем специальность и просим предмет
 @router.message(Form.specialty)
 async def process_specialty(message: Message, state: FSMContext):
-    await state.update_data(specialty=message.text)
-    await message.answer("Введите предмет:")
+    specialty = message.text.strip()
+    if len(specialty) > 100:
+        await message.reply("<b>Название специальности</b> не должно превышать 100 символов.\n"
+                            "<b>Пожалуйста, введите название вашей специальности заново:</b>")
+        return
+    await state.update_data(specialty=specialty)
+    await message.answer("Введите <b>название предмета</b>:")
     await state.set_state(Form.subject)
 
 #получаем предмет и просит опыт преподавания
 @router.message(Form.subject)
 async def process_subject(message: Message, state: FSMContext):
-    await state.update_data(subject=message.text)
-    await message.answer("Введите ваш опыт преподавания (в годах):")
+    subject = message.text.strip()
+    if len(subject) > 100:
+        await message.reply("<b>Название предмета</b> не должно превышать 100 символов.\n"
+                            "<b>Пожалуйста, введите название вашего предмета заново:</b>")
+        return
+    await state.update_data(subject=subject)
+    await message.answer("Введите ваш <b>опыт преподавания</b> (в годах):")
     await state.set_state(Form.teach_experience)
 
 #получаем опыт преподавания и просим ввести время для занятий
 @router.message(Form.teach_experience)
 async def process_teach_experience(message: Message, state: FSMContext):
-    await state.update_data(teach_experience=message.text)
-    await message.answer("Введите время, когда удобно проводить занятия (или по договорённости):")
+    teach_experience = message.text.strip()
+    if not teach_experience.isdigit() or int(teach_experience) < 0 or int(teach_experience) >= 100 :
+        await message.reply("<b>Опыт преподавания</b> должен быть неотрицательным целым числом и меньше 100 лет.\n"
+                            "<b>Пожалуйста, введите опыт преподавания заново:</b>")
+        return
+    await state.update_data(teach_experience=teach_experience)
+    await message.answer("Введите <b>время</b>, когда удобно проводить занятия (или <b>\'по договорённости\'</b>):\n"
+                         "(<i>допустимы: цифры, буквы, спец. символы:</i> ,.?!:;)")
     await state.set_state(Form.time_slot)
 
 # получаем опыт преподавания и просит цену услуг
 @router.message(Form.time_slot)
 async def process_time_slot(message: Message, state: FSMContext):
-    await state.update_data(time_slot=message.text)
-    await message.answer("Введите стоимость услуг, например, 1500 рублей (или по договорённости):")
+    time_slot = message.text.strip()
+    if len(time_slot) > 200:
+        await message.reply("<b>Время занятий</b> не должно превышать 200 символов.\n"
+                            "<b>Пожалуйста, введите время занятий заново:</b>")
+        return
+    await state.update_data(time_slot=time_slot)
+    await message.answer("Введите <b>стоимость услуг</b>.\n"
+                         "Например, \'1500\' (<b>рублей</b> или по <b>договорённости</b>):")
     await state.set_state(Form.pay_services)
 
 
 # получаем цену услуг и просит контакты
 @router.message(Form.pay_services)
 async def process_pay_services(message: Message, state: FSMContext):
-    await state.update_data(pay_services=message.text)
+    pay_services = message.text.strip()
+    if not pay_services.isdigit() or int(pay_services) < 0:
+        await message.reply("<b>Стоимость услуг</b> должна быть неотрицательным целым числом.\n"
+                            "<b>Пожалуйста, введите стоимость услуг заново:</b>")
+        return
+
+    await state.update_data(pay_services=int(pay_services))
 
     # создаем клавиатуру
     builder = InlineKeyboardBuilder()
@@ -782,7 +893,8 @@ async def process_contact_telegram(callback_query: types.CallbackQuery, state: F
         await finalize_publication(callback_query.message, state)
     else:
         # Если юзернейм отсутствует, просим ввести контакт вручную
-        await callback_query.message.answer("У вас не указан юзернейм. Пожалуйста, введите ваш контакт вручную:")
+        await callback_query.message.answer("У вас не указан юзернейм.\n"
+                                            "Пожалуйста, введите ваш контакт вручную:")
         await state.set_state(Form.contact_manual)
 
 
@@ -795,7 +907,8 @@ async def process_contact(message: Message, state: FSMContext):
         await state.update_data(tutor_id=tutor_id)
         await message.answer("Ваш юзернейм успешно получен!")
     else:
-        await message.answer("У вас нет установленного юзернейма. Пожалуйста, введите его вручную:")
+        await message.answer("У вас нет установленного юзернейма.\n"
+                             "Пожалуйста, введите его вручную:")
         await state.set_state(Form.contact_manual) # просим ввести руками
         return
 
@@ -850,9 +963,9 @@ async def finalize_publication(message: Message, state: FSMContext):
             f"Учреждение: {institution}\n" +
             f"Специальность(направление): {specialty}\n" +
             f"Предмет: {subject}\n" +
-            f"Опыт преподавания: {teach_experience}\n" +
+            f"Опыт преподавания: {teach_experience} (год/лет/года)\n" +
             f"Удобное время: {time_slot}\n" +
-            f"Стоимость услуги: {pay_services}\n" +
+            f"Стоимость услуги: {pay_services} RUB\n" +
             f"Контактные данные: {contact}"
     )
     logging.info(f"Длина сообщения: {len(message_text)}")

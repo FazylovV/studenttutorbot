@@ -115,7 +115,7 @@ class DataBase:
         if time_slot:
             query += f" AND time_slot ILIKE '%{time_slot}%'"
         if pay_services:
-            query += f" AND pay_services < '{pay_services}'"
+            query += f" AND pay_services <= '{pay_services}'"
 
         result = self.exec_query(query)
         return result[0][0]  # вернул количество совпадений
@@ -141,7 +141,7 @@ class DataBase:
         # if pay_services:
         #     query += f" AND pay_services ILIKE '%{pay_services}%'"
         if pay_services:
-            query += f" AND pay_services < '{pay_services}'"
+            query += f" AND pay_services <= '{pay_services}'"
 
         query += f" ORDER BY id ASC LIMIT {per_page} OFFSET {offset}"  # Ограничиваю количество публикаций для страницы
         result = self.exec_query(query)
